@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FX Trade Lifecycle — Capital Markets Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:    #0A1628;
+  --navy2:   #0F2040;
+  --navy3:   #162B52;
+  --blue:    #1A5FBF;
+  --accent:  #00B4D8;
+  --accent2: #0096B7;
+  --gold:    #F4A829;
+  --teal:    #0D9488;
+  --green:   #10B981;
+  --amber:   #F59E0B;
+  --red:     #EF4444;
+  --red2:    #DC2626;
+  --purple:  #8B5CF6;
+  --white:   #FFFFFF;
+  --off:     #F0F4F8;
+  --muted:   #7A94B0;
+  --border:  rgba(255,255,255,0.08);
+  --card:    rgba(255,255,255,0.04);
+  --card2:   rgba(255,255,255,0.07);
+  --mono: 'DM Mono', monospace;
+  --head: 'Syne', sans-serif;
+  --body: 'DM Sans', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--body);background:var(--navy);color:var(--white);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:linear-gradient(rgba(0,180,216,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,180,216,0.025) 1px,transparent 1px);background-size:40px 40px;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,22,40,0.94);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:54px;}
+.nav-brand{font-family:var(--head);font-weight:800;font-size:0.95rem;color:var(--white);display:flex;align-items:center;gap:8px;}
+.nav-brand-accent{color:var(--accent);}
+.nav-tabs{display:flex;gap:3px;}
+.nav-tab{font-family:var(--mono);font-size:0.65rem;font-weight:500;padding:6px 12px;border-radius:6px;border:none;cursor:pointer;background:transparent;color:var(--muted);letter-spacing:0.05em;transition:all 0.2s;text-transform:uppercase;}
+.nav-tab:hover{color:var(--white);background:var(--card2);}
+.nav-tab.active{background:var(--accent);color:var(--navy);font-weight:700;}
+.nav-pill{font-family:var(--mono);font-size:0.6rem;padding:3px 10px;border:1px solid var(--accent);border-radius:100px;color:var(--accent);letter-spacing:0.06em;}
+
+/* SCREENS */
+.screen{display:none;padding-top:54px;min-height:100vh;}
+.screen.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.ani{animation:fadeUp 0.35s ease both;}
+.ani2{animation:fadeUp 0.35s 0.08s ease both;}
+.ani3{animation:fadeUp 0.35s 0.16s ease both;}
+
+/* PAGE HEADER */
+.page-wrap{max-width:1100px;margin:0 auto;padding:2.5rem 1.5rem;}
+.page-kicker{font-family:var(--mono);font-size:0.62rem;color:var(--accent);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:6px;}
+.page-title{font-family:var(--head);font-size:1.8rem;font-weight:800;line-height:1.15;}
+.page-sub{color:var(--muted);font-size:0.88rem;margin-top:5px;}
+
+/* CARDS */
+.card{background:var(--card2);border:1px solid var(--border);border-radius:14px;}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;}
+.fgroup{display:flex;flex-direction:column;gap:5px;}
+.flabel{font-family:var(--mono);font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;}
+.finput,.fselect{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.11);border-radius:8px;padding:10px 13px;color:var(--white);font-family:var(--body);font-size:0.88rem;transition:border-color 0.2s,box-shadow 0.2s;outline:none;appearance:none;}
+.finput:focus,.fselect:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,180,216,0.13);}
+.finput.hi{border-color:var(--accent);color:var(--accent);font-weight:500;}
+.fselect option{background:var(--navy2);}
+.rate-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(0,180,216,0.09);border:1px solid rgba(0,180,216,0.28);border-radius:6px;padding:3px 9px;font-family:var(--mono);font-size:0.68rem;color:var(--accent);margin-top:3px;}
+.rdot{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* VALIDATION STRIP */
+.val-strip{display:flex;align-items:center;justify-content:space-between;background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.28);border-radius:10px;padding:11px 15px;margin-bottom:1.25rem;}
+.val-checks{display:flex;gap:1.2rem;flex-wrap:wrap;}
+.val-item{display:flex;align-items:center;gap:5px;font-size:0.78rem;color:var(--green);}
+.val-item::before{content:'✓';font-weight:700;}
+
+/* BUTTONS */
+.btn{border:none;border-radius:9px;padding:12px 24px;font-family:var(--head);font-weight:700;font-size:0.88rem;cursor:pointer;transition:all 0.2s;letter-spacing:0.02em;}
+.btn-acc{background:var(--accent);color:var(--navy);}
+.btn-acc:hover{background:var(--accent2);transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-ghost:hover{border-color:var(--muted);color:var(--white);}
+
+/* TABLE */
+.tcard{background:var(--card2);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:1.25rem;}
+.thead-row{display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1.25rem;border-bottom:1px solid var(--border);}
+.thead-title{font-family:var(--head);font-weight:700;font-size:0.95rem;}
+.live-badge{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:0.62rem;color:var(--green);}
+.ldot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 1.2s infinite;}
+table{width:100%;border-collapse:collapse;}
+th{font-family:var(--mono);font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;padding:9px 14px;text-align:left;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.015);}
+td{padding:13px 14px;font-size:0.83rem;border-bottom:1px solid rgba(255,255,255,0.035);}
+tr:last-child td{border-bottom:none;}
+tr.rbreach{background:rgba(239,68,68,0.045);}
+tr.rwarn{background:rgba(245,158,11,0.04);}
+tr:not(.rbreach):not(.rwarn):hover{background:var(--card);}
+.tname{font-weight:600;}
+.tdesk{font-family:var(--mono);font-size:0.62rem;color:var(--muted);margin-top:2px;}
+.badge{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:0.62rem;font-weight:600;padding:4px 9px;border-radius:100px;letter-spacing:0.05em;white-space:nowrap;}
+.bb{background:rgba(239,68,68,0.13);color:var(--red);border:1px solid rgba(239,68,68,0.28);}
+.bw{background:rgba(245,158,11,0.1);color:var(--amber);border:1px solid rgba(245,158,11,0.28);}
+.bo{background:rgba(16,185,129,0.09);color:var(--green);border:1px solid rgba(16,185,129,0.22);}
+.bc{background:rgba(0,180,216,0.1);color:var(--accent);border:1px solid rgba(0,180,216,0.22);}
+.util-bar{display:flex;align-items:center;gap:7px;}
+.bar-t{flex:1;height:4px;background:rgba(255,255,255,0.09);border-radius:2px;min-width:52px;}
+.bar-f{height:100%;border-radius:2px;transition:width 0.6s;}
+.bpct{font-family:var(--mono);font-size:0.68rem;min-width:34px;}
+.mono{font-family:var(--mono);font-size:0.8rem;}
+.pos{color:var(--green);}
+.neg{color:var(--red);}
+.abtn{background:rgba(0,180,216,0.09);border:1px solid rgba(0,180,216,0.18);color:var(--accent);border-radius:6px;padding:5px 11px;font-size:0.72rem;cursor:pointer;transition:all 0.18s;white-space:nowrap;font-family:var(--body);}
+.abtn:hover{background:rgba(0,180,216,0.2);}
+.abtn.r{background:rgba(239,68,68,0.09);border-color:rgba(239,68,68,0.22);color:var(--red);}
+.abtn.r:hover{background:rgba(239,68,68,0.18);}
+
+/* KPI CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.25rem;}
+.kpi{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.25rem;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kc,var(--accent));}
+.kpi-l{font-family:var(--mono);font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;}
+.kpi-v{font-family:var(--head);font-size:1.9rem;font-weight:800;color:var(--kc,var(--white));}
+.kpi-s{font-size:0.72rem;color:var(--muted);margin-top:2px;}
+
+/* VAR CHART */
+.var-card{background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:1.25rem;margin-bottom:1.25rem;}
+.var-chart{position:relative;height:75px;margin-top:0.75rem;}
+.var-svg{width:100%;height:100%;}
+
+/* BREACH SCREEN */
+.breach-wrap{padding:1.5rem;padding-top:3.5rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;min-height:calc(100vh - 54px);}
+.breach-panel{background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.22);border-radius:16px;padding:1.4rem;}
+.breach-hdr{display:flex;align-items:center;gap:9px;background:rgba(239,68,68,0.13);border-radius:8px;padding:7px 13px;margin-bottom:1.3rem;}
+.bdot{width:8px;height:8px;background:var(--red);border-radius:50%;animation:pulse 0.8s infinite;}
+.blabel{font-family:var(--mono);font-size:0.62rem;color:var(--red);letter-spacing:0.1em;text-transform:uppercase;font-weight:700;}
+.btitle{font-family:var(--head);font-size:1.35rem;font-weight:800;color:var(--red);margin-bottom:4px;}
+.bmeta{font-size:0.78rem;color:var(--muted);margin-bottom:1.3rem;}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.9rem;margin-bottom:1.2rem;}
+.mbox{background:rgba(0,0,0,0.2);border:1px solid rgba(239,68,68,0.18);border-radius:10px;padding:0.9rem;}
+.mval{font-family:var(--head);font-size:1.5rem;font-weight:800;color:var(--red);}
+.mname{font-family:var(--mono);font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;}
+.msub{font-size:0.72rem;color:rgba(239,68,68,0.65);margin-top:2px;}
+.tbar{background:var(--red);border-radius:9px;padding:12px;text-align:center;font-family:var(--head);font-weight:700;font-size:0.88rem;cursor:pointer;transition:all 0.2s;margin-top:0.9rem;}
+.tbar:hover{background:var(--red2);transform:translateY(-1px);}
+
+/* AI PANEL */
+.ai-panel{background:rgba(0,15,35,0.65);border:1px solid rgba(0,180,216,0.18);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;}
+.ai-topbar{background:rgba(0,180,216,0.07);border-bottom:1px solid rgba(0,180,216,0.14);padding:11px 15px;display:flex;align-items:center;justify-content:space-between;}
+.ai-title{font-family:var(--mono);font-size:0.67rem;color:var(--accent);letter-spacing:0.06em;font-weight:600;}
+.ai-badges{display:flex;align-items:center;gap:6px;}
+.tbadge{border-radius:4px;padding:2px 7px;font-family:var(--mono);font-size:0.58rem;font-weight:700;letter-spacing:0.04em;}
+.tb-claude{background:var(--accent);color:var(--navy);}
+.tb-ecg{background:rgba(244,168,41,0.15);border:1px solid rgba(244,168,41,0.3);color:var(--gold);}
+.tb-sling{background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);color:var(--purple);}
+.chat-msgs{flex:1;overflow-y:auto;padding:1.1rem;display:flex;flex-direction:column;gap:0.9rem;min-height:280px;max-height:380px;}
+.chat-msgs::-webkit-scrollbar{width:3px;}
+.chat-msgs::-webkit-scrollbar-thumb{background:var(--navy3);border-radius:2px;}
+.msg{display:flex;flex-direction:column;gap:3px;}
+.msg.u{align-items:flex-end;}
+.msg.a{align-items:flex-start;}
+.mbub{max-width:90%;border-radius:11px;padding:9px 13px;font-size:0.82rem;line-height:1.55;}
+.msg.u .mbub{background:var(--blue);color:var(--white);border-bottom-right-radius:3px;}
+.msg.a .mbub{background:rgba(255,255,255,0.055);border:1px solid var(--border);border-bottom-left-radius:3px;color:rgba(255,255,255,0.88);}
+.mtime{font-family:var(--mono);font-size:0.58rem;color:var(--muted);}
+.ah{color:var(--accent);font-weight:600;}
+.ag{color:var(--gold);font-weight:600;}
+.ar{color:rgba(239,68,68,0.8);}
+.agr{color:var(--green);}
+.typing{display:flex;align-items:center;gap:4px;padding:5px 0;}
+.td{width:5px;height:5px;background:var(--muted);border-radius:50%;animation:tb 1.2s infinite;}
+.td:nth-child(2){animation-delay:.2s}
+.td:nth-child(3){animation-delay:.4s}
+@keyframes tb{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.sugg{padding:0 1.1rem 0.65rem;display:flex;flex-wrap:wrap;gap:5px;}
+.schip{background:rgba(0,180,216,0.07);border:1px solid rgba(0,180,216,0.18);border-radius:100px;padding:4px 11px;font-size:0.72rem;color:var(--accent);cursor:pointer;transition:all 0.18s;}
+.schip:hover{background:rgba(0,180,216,0.17);}
+.cinput-row{padding:0.9rem 1.1rem;border-top:1px solid var(--border);display:flex;gap:7px;}
+.cinput{flex:1;background:rgba(255,255,255,0.055);border:1px solid var(--border);border-radius:9px;padding:9px 13px;color:var(--white);font-family:var(--body);font-size:0.83rem;outline:none;transition:border-color 0.2s;}
+.cinput:focus{border-color:var(--accent);}
+.cinput::placeholder{color:var(--muted);}
+.csend{background:var(--accent);border:none;border-radius:9px;width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.18s;color:var(--navy);font-weight:700;font-size:0.9rem;}
+.csend:hover{background:var(--accent2);}
+.act-row{display:flex;gap:8px;padding:0 1.1rem 1.1rem;}
+.actb{flex:1;border:none;border-radius:9px;padding:11px;font-family:var(--head);font-weight:700;font-size:0.82rem;cursor:pointer;transition:all 0.2s;}
+.actb.g{background:var(--green);color:var(--navy);}
+.actb.g:hover{filter:brightness(1.1);}
+.actb.am{background:var(--amber);color:var(--navy);}
+.actb.am:hover{filter:brightness(1.1);}
+.src-bar{margin:0 1.1rem 0.9rem;background:rgba(255,255,255,0.025);border:1px solid var(--border);border-radius:8px;padding:7px 11px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);}
+
+/* AGENTS SCREEN */
+.agents-wrap{padding:1.5rem;padding-top:3.5rem;}
+.agents-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.25rem;}
+.agent-card{background:var(--card2);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.agent-top{padding:1.1rem 1.1rem 0.9rem;border-bottom:1px solid var(--border);}
+.agent-num{font-family:var(--mono);font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px;}
+.agent-name{font-family:var(--head);font-size:1rem;font-weight:800;}
+.agent-role{font-size:0.75rem;color:var(--muted);margin-top:3px;}
+.agent-body{padding:1.1rem;}
+.asec{margin-bottom:0.85rem;}
+.asec-l{font-family:var(--mono);font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;}
+.areads{font-size:0.8rem;color:var(--accent);font-weight:500;}
+.titem{display:flex;align-items:flex-start;gap:7px;padding:5px 0;font-size:0.77rem;color:rgba(255,255,255,0.68);border-bottom:1px solid rgba(255,255,255,0.035);}
+.titem:last-child{border-bottom:none;}
+.tico{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.6rem;flex-shrink:0;margin-top:1px;}
+.tip{background:rgba(255,255,255,0.07);color:var(--muted);}
+.tir{background:rgba(0,180,216,0.14);color:var(--accent);}
+.tipa{background:rgba(16,185,129,0.14);color:var(--green);}
+.tif{background:rgba(239,68,68,0.14);color:var(--red);}
+.prog-o{height:3px;background:rgba(255,255,255,0.07);border-radius:2px;margin:8px 0;overflow:hidden;}
+.prog-i{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width 0.28s ease;}
+.run-btn{width:100%;margin-top:0.75rem;background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:var(--head);font-weight:700;font-size:0.82rem;cursor:pointer;transition:all 0.2s;color:var(--white);}
+.run-btn:hover{border-color:var(--accent);color:var(--accent);}
+.run-btn.running{border-color:var(--accent);color:var(--accent);}
+.run-btn.done{border-color:var(--green);color:var(--green);background:rgba(16,185,129,0.07);}
+.res-box{margin-top:0.75rem;border-radius:9px;padding:10px;font-family:var(--mono);font-size:0.7rem;line-height:1.65;border:1px solid;display:none;}
+.res-box.pass{background:rgba(16,185,129,0.07);border-color:rgba(16,185,129,0.28);color:var(--green);}
+.res-box.show{display:block;}
+
+/* PIPELINE SECTION */
+.pipeline-section{margin-top:1.5rem;}
+.pipeline-row{display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative;}
+.pipeline-step{background:var(--card2);border:1px solid var(--border);border-radius:0;padding:1rem;position:relative;text-align:center;}
+.pipeline-step:first-child{border-radius:10px 0 0 10px;}
+.pipeline-step:last-child{border-radius:0 10px 10px 0;}
+.pipeline-step::after{content:'→';position:absolute;right:-12px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:1rem;z-index:2;}
+.pipeline-step:last-child::after{display:none;}
+.ps-icon{font-size:1.4rem;margin-bottom:6px;}
+.ps-name{font-family:var(--head);font-size:0.82rem;font-weight:700;margin-bottom:3px;}
+.ps-sub{font-family:var(--mono);font-size:0.6rem;color:var(--muted);}
+.ps-badge{display:inline-block;margin-top:5px;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:0.58rem;font-weight:700;}
+
+/* SPEED SECTION */
+.speed-section{margin-top:1.5rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.speed-card{background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:1.25rem;}
+.speed-title{font-family:var(--head);font-weight:700;font-size:0.95rem;margin-bottom:1rem;}
+.speed-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.speed-row:last-child{border-bottom:none;}
+.speed-label{font-size:0.82rem;color:rgba(255,255,255,0.7);}
+.speed-trad{font-family:var(--mono);font-size:0.75rem;color:var(--red);}
+.speed-ai{font-family:var(--mono);font-size:0.8rem;color:var(--green);font-weight:700;}
+
+/* SUMMARY */
+.summary-card{display:none;margin-top:1.25rem;background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.28);border-radius:14px;padding:1.4rem;}
+
+/* TOAST */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:200;background:var(--navy2);border:1px solid var(--green);border-radius:11px;padding:0.9rem 1.25rem;display:flex;align-items:center;gap:10px;opacity:0;transform:translateY(18px);transition:all 0.3s;pointer-events:none;font-size:0.88rem;}
+.toast.show{opacity:1;transform:none;}
+
+@media(max-width:768px){.kpi-row{grid-template-columns:1fr 1fr;}.breach-wrap{grid-template-columns:1fr;}.agents-grid{grid-template-columns:1fr;}.form-grid{grid-template-columns:1fr;}.pipeline-row{grid-template-columns:1fr;}.speed-section{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">FX<span class="nav-brand-accent">Trade</span> · Capital Markets Platform</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showScreen('trade-capture',this)">01 Trade Capture</button>
+    <button class="nav-tab" onclick="showScreen('position-dashboard',this)">02 Positions</button>
+    <button class="nav-tab" onclick="showScreen('breach-ai',this)">03 Breach &amp; AI</button>
+    <button class="nav-tab" onclick="showScreen('agents',this)">04 Agents &amp; CI/CD</button>
+  </div>
+  <div class="nav-pill">PROTOTYPE</div>
+</nav>
+
+<div class="toast" id="toast">
+  <span style="color:var(--green);font-size:1.1rem;">✓</span>
+  <div>
+    <div style="font-weight:700;font-size:0.88rem;" id="toast-title"></div>
+    <div style="color:var(--muted);font-size:0.77rem;" id="toast-msg"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- SCREEN 1: TRADE CAPTURE            -->
+<!-- ═══════════════════════════════════ -->
+<div class="screen active" id="screen-trade-capture">
+  <div class="page-wrap">
+    <div class="ani" style="margin-bottom:2rem;">
+      <div class="page-kicker">Screen 01 · Phase 1 — Trade Setup</div>
+      <div class="page-title">New FX Trade</div>
+      <div class="page-sub">Complete all fields · Pre-trade validation runs automatically before submission</div>
+    </div>
+
+    <div class="card ani2" style="padding:1.75rem;">
+      <div class="form-grid">
+        <div class="fgroup">
+          <label class="flabel">Currency Pair</label>
+          <select class="fselect hi" id="ccy-pair" onchange="updateRate()">
+            <option value="AUDUSD">AUD / USD</option>
+            <option value="EURUSD">EUR / USD</option>
+            <option value="USDCNY">USD / CNY</option>
+            <option value="USDBRL">USD / BRL</option>
+            <option value="GBPUSD">GBP / USD</option>
+          </select>
+          <div class="rate-chip"><span class="rdot"></span>Live rate: <span id="live-rate">0.6542</span> · Market feed</div>
+        </div>
+        <div class="fgroup">
+          <label class="flabel">Trade Rate</label>
+          <input class="finput" type="text" id="trade-rate" value="0.6542" readonly style="color:var(--accent);">
+        </div>
+        <div class="fgroup">
+          <label class="flabel">Direction</label>
+          <select class="fselect" id="direction"><option>BUY (Long)</option><option>SELL (Short)</option></select>
+        </div>
+        <div class="fgroup">
+          <label class="flabel">Value Date</label>
+          <input class="finput" type="text" value="30 Apr 2026  (T+2)" readonly>
+        </div>
+        <div class="fgroup">
+          <label class="flabel">Notional Amount (USD)</label>
+          <input class="finput" type="text" id="notional" value="85,000,000">
+        </div>
+        <div class="fgroup">
+          <label class="flabel">Counterparty</label>
+          <select class="fselect">
+            <option>JP Morgan — New York</option>
+            <option>Deutsche Bank — Frankfurt</option>
+            <option>Citi — London</option>
+            <option>HSBC — Hong Kong</option>
+            <option>BNP Paribas — Paris</option>
+          </select>
+        </div>
+        <div class="fgroup">
+          <label class="flabel">Trader ID</label>
+          <input class="finput" type="text" value="T001 — James Wilson" readonly>
+        </div>
+        <div class="fgroup">
+          <label class="flabel">Desk</label>
+          <input class="finput" type="text" value="FX Trading Desk — Global" readonly>
+        </div>
+      </div>
+
+      <div class="val-strip">
+        <div class="val-checks">
+          <div class="val-item">Counterparty credit</div>
+          <div class="val-item">NOP headroom check</div>
+          <div class="val-item">Settlement date valid</div>
+          <div class="val-item">Rate within tolerance</div>
+        </div>
+        <span style="font-family:var(--mono);font-size:0.68rem;color:var(--green);font-weight:700;">PRE-TRADE: PASSED</span>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-ghost" onclick="resetForm()">Clear</button>
+        <button class="btn btn-acc" onclick="submitTrade()">Validate &amp; Submit Trade →</button>
+      </div>
+    </div>
+
+    <div style="margin-top:1.75rem;" class="ani3">
+      <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem;">Today's Trades</div>
+      <div class="tcard">
+        <table>
+          <thead><tr><th>Trade ID</th><th>Pair</th><th>Direction</th><th>Notional</th><th>Rate</th><th>Status</th></tr></thead>
+          <tbody id="recent-trades">
+            <tr><td class="mono" style="color:var(--accent)">TRD-20260428-1301</td><td>AUD/USD</td><td>BUY</td><td class="mono">$60,000,000</td><td class="mono">0.6538</td><td><span class="badge bo">CONFIRMED</span></td></tr>
+            <tr><td class="mono" style="color:var(--accent)">TRD-20260428-1215</td><td>EUR/USD</td><td>SELL</td><td class="mono">$80,000,000</td><td class="mono">1.0821</td><td><span class="badge bo">CONFIRMED</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- SCREEN 2: POSITION DASHBOARD       -->
+<!-- ═══════════════════════════════════ -->
+<div class="screen" id="screen-position-dashboard">
+  <div class="page-wrap">
+    <div class="ani" style="margin-bottom:1.5rem;">
+      <div class="page-kicker">Screen 02 · Phase 2 — Position Management</div>
+      <div class="page-title">Live Position Dashboard</div>
+      <div class="page-sub">Real-time NOP, P&amp;L and VaR across all desks · Auto-refresh 30s</div>
+    </div>
+
+    <div class="kpi-row ani">
+      <div class="kpi" style="--kc:var(--accent)"><div class="kpi-l">Total Positions</div><div class="kpi-v">4</div><div class="kpi-s">Across all desks</div></div>
+      <div class="kpi" style="--kc:var(--red)"><div class="kpi-l">Active Breaches</div><div class="kpi-v" style="color:var(--red)">2</div><div class="kpi-s">Require action</div></div>
+      <div class="kpi" style="--kc:var(--amber)"><div class="kpi-l">Warnings</div><div class="kpi-v" style="color:var(--amber)">1</div><div class="kpi-s">Approaching limit</div></div>
+      <div class="kpi" style="--kc:var(--purple)"><div class="kpi-l">Portfolio VaR</div><div class="kpi-v" style="color:var(--purple)">$5.2M</div><div class="kpi-s" style="color:rgba(239,68,68,0.7)">▲ Above limit</div></div>
+    </div>
+
+    <div class="tcard ani2">
+      <div class="thead-row">
+        <div class="thead-title">Live Positions</div>
+        <div class="live-badge"><div class="ldot"></div>LIVE · 14:38</div>
+      </div>
+      <table>
+        <thead><tr><th>Trader</th><th>Pair</th><th>NOP ($M)</th><th>Limit ($M)</th><th>Utilisation</th><th>VaR ($M)</th><th>Daily P&amp;L</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <tr class="rbreach">
+            <td><div class="tname">James Wilson</div><div class="tdesk">FX Desk — Global</div></td>
+            <td class="mono">AUD/USD</td>
+            <td class="mono" style="color:var(--red)">125</td><td class="mono">100</td>
+            <td><div class="util-bar"><div class="bar-t"><div class="bar-f" style="width:100%;background:var(--red)"></div></div><span class="bpct" style="color:var(--red)">125%</span></div></td>
+            <td class="mono" style="color:var(--red)">1.85</td>
+            <td class="pos mono">+$245K</td>
+            <td><span class="badge bb">⚠ BREACH</span></td>
+            <td><button class="abtn r" onclick="goToBreachAI()">AI Advisory →</button></td>
+          </tr>
+          <tr>
+            <td><div class="tname">Maria Garcia</div><div class="tdesk">FX Desk — EMEA</div></td>
+            <td class="mono">EUR/USD</td>
+            <td class="mono">80</td><td class="mono">150</td>
+            <td><div class="util-bar"><div class="bar-t"><div class="bar-f" style="width:53%;background:var(--green)"></div></div><span class="bpct" style="color:var(--green)">53%</span></div></td>
+            <td class="mono">0.98</td>
+            <td class="neg mono">-$125K</td>
+            <td><span class="badge bo">✓ OK</span></td>
+            <td><button class="abtn">View</button></td>
+          </tr>
+          <tr class="rbreach">
+            <td><div class="tname">Chen Wei</div><div class="tdesk">FX Desk — Asia</div></td>
+            <td class="mono">USD/CNY</td>
+            <td class="mono" style="color:var(--red)">95</td><td class="mono">80</td>
+            <td><div class="util-bar"><div class="bar-t"><div class="bar-f" style="width:100%;background:var(--red)"></div></div><span class="bpct" style="color:var(--red)">119%</span></div></td>
+            <td class="mono" style="color:var(--red)">1.20</td>
+            <td class="pos mono">+$87K</td>
+            <td><span class="badge bb">⚠ BREACH</span></td>
+            <td><button class="abtn r" onclick="goToBreachAI()">AI Advisory →</button></td>
+          </tr>
+          <tr class="rwarn">
+            <td><div class="tname">Carlos Rodriguez</div><div class="tdesk">FX Desk — LatAm</div></td>
+            <td class="mono">USD/BRL</td>
+            <td class="mono" style="color:var(--amber)">60</td><td class="mono">75</td>
+            <td><div class="util-bar"><div class="bar-t"><div class="bar-f" style="width:80%;background:var(--amber)"></div></div><span class="bpct" style="color:var(--amber)">80%</span></div></td>
+            <td class="mono">0.89</td>
+            <td class="pos mono">+$340K</td>
+            <td><span class="badge bw">⚡ WARN</span></td>
+            <td><button class="abtn">View</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="var-card ani3">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div class="page-kicker" style="margin-bottom:2px">Portfolio VaR — 30 Day Trend</div><div style="font-size:0.82rem;color:var(--muted)">1-day 95% confidence · Limit: $5.0M</div></div>
+        <div style="font-family:var(--mono);font-size:0.72rem;color:var(--red)">Today $5.2M ▲ ABOVE LIMIT</div>
+      </div>
+      <div class="var-chart">
+        <svg class="var-svg" viewBox="0 0 800 75" preserveAspectRatio="none">
+          <defs><linearGradient id="vg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00B4D8" stop-opacity="0.28"/><stop offset="100%" stop-color="#00B4D8" stop-opacity="0"/></linearGradient></defs>
+          <line x1="0" y1="38" x2="800" y2="38" stroke="rgba(239,68,68,0.35)" stroke-dasharray="4 4" stroke-width="1"/>
+          <text x="5" y="33" fill="rgba(239,68,68,0.45)" font-size="8" font-family="monospace">$5.0M limit</text>
+          <path d="M0,54 L53,51 L106,49 L160,47 L213,53 L266,56 L320,52 L373,45 L426,40 L480,36 L533,33 L586,28 L640,32 L693,29 L746,26 L800,22 L800,75 L0,75 Z" fill="url(#vg)"/>
+          <path d="M0,54 L53,51 L106,49 L160,47 L213,53 L266,56 L320,52 L373,45 L426,40 L480,36 L533,33 L586,28 L640,32 L693,29 L746,26 L800,22" fill="none" stroke="#00B4D8" stroke-width="2"/>
+          <circle cx="800" cy="22" r="5" fill="#EF4444"/>
+          <text x="755" y="17" fill="#EF4444" font-size="9" font-family="monospace">$5.2M</text>
+        </svg>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-top:3px;"><span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">30 days ago</span><span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">Today</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- SCREEN 3: BREACH + AI              -->
+<!-- ═══════════════════════════════════ -->
+<div class="screen" id="screen-breach-ai">
+  <div class="breach-wrap">
+    <div class="breach-panel ani">
+      <div class="breach-hdr"><div class="bdot"></div><div class="blabel">Breach Detected — AUD/USD</div></div>
+      <div class="btitle">NOP Limit Exceeded</div>
+      <div class="bmeta">James Wilson · FX Desk Global · 28 Apr 2026  14:32</div>
+      <div class="metric-grid">
+        <div class="mbox"><div class="mval">$125M</div><div class="mname">Net Open Position</div><div class="msub">25% over limit</div></div>
+        <div class="mbox"><div class="mval" style="color:rgba(239,68,68,0.55)">$100M</div><div class="mname">Position Limit</div><div class="msub">Internal Policy 4.2</div></div>
+        <div class="mbox"><div class="mval">$25M</div><div class="mname">Excess Exposure</div><div class="msub">Requires action</div></div>
+        <div class="mbox"><div class="mval">$1.85M</div><div class="mname">VaR 1-day</div><div class="msub">Limit: $1.5M ▲</div></div>
+      </div>
+      <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.22);border-radius:11px;padding:0.9rem;margin-top:0.5rem;">
+        <div style="font-family:var(--mono);font-size:0.6rem;color:var(--amber);letter-spacing:0.08em;margin-bottom:6px;">⚡ SECONDARY — USD/CNY</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <div><div style="font-family:var(--head);font-size:1rem;font-weight:800;color:var(--amber)">$95M</div><div style="font-family:var(--mono);font-size:0.58rem;color:var(--muted)">NOP</div></div>
+          <div><div style="font-family:var(--head);font-size:1rem;font-weight:800;color:rgba(245,158,11,0.5)">$80M</div><div style="font-family:var(--mono);font-size:0.58rem;color:var(--muted)">Limit</div></div>
+          <div><div style="font-family:var(--head);font-size:1rem;font-weight:800;color:var(--amber)">119%</div><div style="font-family:var(--mono);font-size:0.58rem;color:var(--muted)">Utilisation</div></div>
+        </div>
+      </div>
+      <div class="tbar" onclick="triggerAI()">AI Risk Advisory triggered — click to activate →</div>
+    </div>
+
+    <div class="ai-panel ani2">
+      <div class="ai-topbar">
+        <div style="display:flex;align-items:center;gap:7px;"><div class="ai-title">AI RISK ASSISTANT</div><div class="tbadge tb-claude">Claude</div><div class="tbadge tb-ecg">ECG</div><div class="tbadge tb-sling">Slingshot</div></div>
+        <div style="font-family:var(--mono);font-size:0.58rem;color:var(--green)">● Online</div>
+      </div>
+      <div class="sugg" id="suggestions">
+        <div class="schip" onclick="askQ('What should we do about the AUD breach?')">AUD breach — what to do?</div>
+        <div class="schip" onclick="askQ('What is our NOP limit for AUD/USD?')">NOP limit for AUD/USD?</div>
+        <div class="schip" onclick="askQ('Should we escalate to the CRO?')">Escalate to CRO?</div>
+        <div class="schip" onclick="askQ('What hedge instrument should we use?')">Which hedge instrument?</div>
+        <div class="schip" onclick="askQ('What does the hedging policy say?')">Hedging policy details?</div>
+      </div>
+      <div class="chat-msgs" id="chat-msgs">
+        <div class="msg a"><div class="mbub">I'm monitoring <span class="ah">2 active breaches</span>. AUD/USD NOP is $125M vs $100M limit, and USD/CNY is at 119% utilisation. Ask me anything about these positions or recommended actions — I have full context from <span class="ag">ECG</span>.</div><div class="mtime">14:32</div></div>
+      </div>
+      <div class="cinput-row">
+        <input class="cinput" id="cinput" placeholder="Ask about positions, limits, hedging..." onkeydown="handleKey(event)">
+        <button class="csend" onclick="sendChat()">→</button>
+      </div>
+      <div class="act-row">
+        <button class="actb g" onclick="executeHedge()">Execute Hedge Trade</button>
+        <button class="actb am" onclick="escalateCRO()">Escalate to CRO</button>
+      </div>
+      <div class="src-bar" id="src-bar" style="display:none">Source: Hedging Policy v3.2 · Escalation Policy 7.1 · Ingested in ECG · Validated by Slingshot</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- SCREEN 4: AGENTS & CI/CD           -->
+<!-- ═══════════════════════════════════ -->
+<div class="screen" id="screen-agents">
+  <div class="agents-wrap">
+    <div class="ani" style="margin-bottom:1.25rem;">
+      <div class="page-kicker">Screen 04 · Agentic Development & Testing</div>
+      <div class="page-title">AI Agents · CI/CD Pipeline</div>
+      <div class="page-sub">Slingshot + ECG power 6 specialised agents that accelerate every stage of development, testing and deployment</div>
+    </div>
+
+    <!-- CI/CD Pipeline visual -->
+    <div class="pipeline-section ani">
+      <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem;">AI-Powered CI/CD Pipeline</div>
+      <div class="pipeline-row">
+        <div class="pipeline-step" style="border-left:3px solid var(--teal)">
+          <div class="ps-icon">📋</div>
+          <div class="ps-name" style="color:var(--teal)">Backlog Agent</div>
+          <div class="ps-sub">Requirements → User stories</div>
+          <div class="ps-badge" style="background:rgba(13,148,136,0.15);color:var(--teal)">Backlog.ai</div>
+        </div>
+        <div class="pipeline-step" style="border-left:1px solid var(--border)">
+          <div class="ps-icon">⚡</div>
+          <div class="ps-name" style="color:var(--purple)">Build Agent</div>
+          <div class="ps-sub">Spec → Working app</div>
+          <div class="ps-badge" style="background:rgba(139,92,246,0.15);color:var(--purple)">Slingshot</div>
+        </div>
+        <div class="pipeline-step" style="border-left:1px solid var(--border)">
+          <div class="ps-icon">🧪</div>
+          <div class="ps-name" style="color:var(--accent)">Test Agent</div>
+          <div class="ps-sub">ECG spec → Test runs</div>
+          <div class="ps-badge" style="background:rgba(0,180,216,0.15);color:var(--accent)">ECG</div>
+        </div>
+        <div class="pipeline-step" style="border-left:1px solid var(--border)">
+          <div class="ps-icon">🔍</div>
+          <div class="ps-name" style="color:var(--gold)">Review Agent</div>
+          <div class="ps-sub">Code → PR review</div>
+          <div class="ps-badge" style="background:rgba(244,168,41,0.15);color:var(--gold)">ECG + Claude</div>
+        </div>
+        <div class="pipeline-step" style="border-left:1px solid var(--border)">
+          <div class="ps-icon">🚀</div>
+          <div class="ps-name" style="color:var(--green)">Deploy Agent</div>
+          <div class="ps-sub">Tests pass → Deploy</div>
+          <div class="ps-badge" style="background:rgba(16,185,129,0.15);color:var(--green)">CI/CD</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6 Agent Cards -->
+    <div class="agents-grid" style="grid-template-columns:repeat(3,1fr);margin-top:1.25rem;">
+
+      <!-- Agent 1: Backlog -->
+      <div class="agent-card ani">
+        <div class="agent-top" style="border-top:3px solid var(--teal)">
+          <div class="agent-num">Agent 01</div>
+          <div class="agent-name" style="color:var(--teal)">Backlog Agent</div>
+          <div class="agent-role">Requirements → Backlog.ai</div>
+        </div>
+        <div class="agent-body">
+          <div class="asec"><div class="asec-l">Reads from ECG</div><div class="areads">Use case docs · Domain specs</div></div>
+          <div class="asec">
+            <div class="asec-l">Automated Tasks</div>
+            <div id="a1-tests">
+              <div class="titem"><div class="tico tip">○</div>Generate epics from use case</div>
+              <div class="titem"><div class="tico tip">○</div>Write user stories + ACs</div>
+              <div class="titem"><div class="tico tip">○</div>Estimate story points</div>
+              <div class="titem"><div class="tico tip">○</div>Create sprint plan</div>
+            </div>
+          </div>
+          <div class="prog-o"><div class="prog-i" id="a1-prog"></div></div>
+          <button class="run-btn" id="a1-btn" onclick="runAgent(1)">Run Agent 1</button>
+          <div class="res-box pass" id="a1-result"></div>
+        </div>
+      </div>
+
+      <!-- Agent 2: Build -->
+      <div class="agent-card ani2">
+        <div class="agent-top" style="border-top:3px solid var(--purple)">
+          <div class="agent-num">Agent 02</div>
+          <div class="agent-name" style="color:var(--purple)">Build Agent</div>
+          <div class="agent-role">Spec → App · Slingshot</div>
+        </div>
+        <div class="agent-body">
+          <div class="asec"><div class="asec-l">Reads from ECG</div><div class="areads">App spec · UI requirements</div></div>
+          <div class="asec">
+            <div class="asec-l">Automated Tasks</div>
+            <div id="a2-tests">
+              <div class="titem"><div class="tico tip">○</div>Scaffold application structure</div>
+              <div class="titem"><div class="tico tip">○</div>Generate UI components</div>
+              <div class="titem"><div class="tico tip">○</div>Wire up API endpoints</div>
+              <div class="titem"><div class="tico tip">○</div>Ingest code into ECG</div>
+            </div>
+          </div>
+          <div class="prog-o"><div class="prog-i" id="a2-prog"></div></div>
+          <button class="run-btn" id="a2-btn" onclick="runAgent(2)">Run Agent 2</button>
+          <div class="res-box pass" id="a2-result"></div>
+        </div>
+      </div>
+
+      <!-- Agent 3: Testing -->
+      <div class="agent-card ani3">
+        <div class="agent-top" style="border-top:3px solid var(--accent)">
+          <div class="agent-num">Agent 03</div>
+          <div class="agent-name" style="color:var(--accent)">Testing Agent</div>
+          <div class="agent-role">ECG spec → Test validation</div>
+        </div>
+        <div class="agent-body">
+          <div class="asec"><div class="asec-l">Reads from ECG</div><div class="areads">App spec · Policy docs · Code</div></div>
+          <div class="asec">
+            <div class="asec-l">Automated Tasks</div>
+            <div id="a3-tests">
+              <div class="titem"><div class="tico tip">○</div>NOP breach fires alert</div>
+              <div class="titem"><div class="tico tip">○</div>VaR threshold validated</div>
+              <div class="titem"><div class="tico tip">○</div>AI recommendation correct</div>
+              <div class="titem"><div class="tico tip">○</div>End-to-end flow verified</div>
+            </div>
+          </div>
+          <div class="prog-o"><div class="prog-i" id="a3-prog"></div></div>
+          <button class="run-btn" id="a3-btn" onclick="runAgent(3)">Run Agent 3</button>
+          <div class="res-box pass" id="a3-result"></div>
+        </div>
+      </div>
+
+      <!-- Agent 4: Code Review -->
+      <div class="agent-card ani">
+        <div class="agent-top" style="border-top:3px solid var(--gold)">
+          <div class="agent-num">Agent 04</div>
+          <div class="agent-name" style="color:var(--gold)">Review Agent</div>
+          <div class="agent-role">Code → PR review · ECG</div>
+        </div>
+        <div class="agent-body">
+          <div class="asec"><div class="asec-l">Reads from ECG</div><div class="areads">Source code · Coding standards</div></div>
+          <div class="asec">
+            <div class="asec-l">Automated Tasks</div>
+            <div id="a4-tests">
+              <div class="titem"><div class="tico tip">○</div>Static code analysis</div>
+              <div class="titem"><div class="tico tip">○</div>Security vulnerability scan</div>
+              <div class="titem"><div class="tico tip">○</div>Coding standards check</div>
+              <div class="titem"><div class="tico tip">○</div>Auto-generate PR comments</div>
+            </div>
+          </div>
+          <div class="prog-o"><div class="prog-i" id="a4-prog"></div></div>
+          <button class="run-btn" id="a4-btn" onclick="runAgent(4)">Run Agent 4</button>
+          <div class="res-box pass" id="a4-result"></div>
+        </div>
+      </div>
+
+      <!-- Agent 5: CI/CD Deploy -->
+      <div class="agent-card ani2">
+        <div class="agent-top" style="border-top:3px solid var(--green)">
+          <div class="agent-num">Agent 05</div>
+          <div class="agent-name" style="color:var(--green)">CI/CD Agent</div>
+          <div class="agent-role">Tests pass → Auto deploy</div>
+        </div>
+        <div class="agent-body">
+          <div class="asec"><div class="asec-l">Triggers on</div><div class="areads">All tests green · PR merged</div></div>
+          <div class="asec">
+            <div class="asec-l">Automated Tasks</div>
+            <div id="a5-tests">
+              <div class="titem"><div class="tico tip">○</div>Run integration test suite</div>
+              <div class="titem"><div class="tico tip">○</div>Build &amp; package artefacts</div>
+              <div class="titem"><div class="tico tip">○</div>Deploy to staging env</div>
+              <div class="titem"><div class="tico tip">○</div>Smoke test post-deploy</div>
+            </div>
+          </div>
+          <div class="prog-o"><div class="prog-i" id="a5-prog"></div></div>
+          <button class="run-btn" id="a5-btn" onclick="runAgent(5)">Run Agent 5</button>
+          <div class="res-box pass" id="a5-result"></div>
+        </div>
+      </div>
+
+      <!-- Agent 6: Risk AI -->
+      <div class="agent-card ani3">
+        <div class="agent-top" style="border-top:3px solid var(--red)">
+          <div class="agent-num">Agent 06</div>
+          <div class="agent-name" style="color:var(--red)">Risk AI Agent</div>
+          <div class="agent-role">Breach → Recommendation</div>
+        </div>
+        <div class="agent-body">
+          <div class="asec"><div class="asec-l">Reads from ECG</div><div class="areads">Policy docs · Hedge playbook</div></div>
+          <div class="asec">
+            <div class="asec-l">Automated Tasks</div>
+            <div id="a6-tests">
+              <div class="titem"><div class="tico tip">○</div>Monitor position limits live</div>
+              <div class="titem"><div class="tico tip">○</div>Trigger on breach detection</div>
+              <div class="titem"><div class="tico tip">○</div>Generate hedge recommendation</div>
+              <div class="titem"><div class="tico tip">○</div>Auto-notify risk manager</div>
+            </div>
+          </div>
+          <div class="prog-o"><div class="prog-i" id="a6-prog"></div></div>
+          <button class="run-btn" id="a6-btn" onclick="runAgent(6)">Run Agent 6</button>
+          <div class="res-box pass" id="a6-result"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Run All -->
+    <div style="margin-top:1.25rem;text-align:center;">
+      <button class="btn btn-acc" onclick="runAllAgents()" style="padding:13px 36px;font-size:0.95rem;">Run All 6 Agents</button>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-card" id="summary-card">
+      <div style="font-family:var(--head);font-size:1.2rem;font-weight:800;color:var(--green);margin-bottom:6px;">All 24 Tests Passed — 0 Failures · Full Pipeline Green</div>
+      <div style="color:rgba(255,255,255,0.65);font-size:0.85rem;margin-bottom:1.1rem;">6 agents · 24 scenarios · All validated against ECG-ingested specs, policy docs and source code</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;">
+        <div style="text-align:center"><div style="font-family:var(--head);font-size:1.6rem;font-weight:800;color:var(--green)">6</div><div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);text-transform:uppercase">Agents run</div></div>
+        <div style="text-align:center"><div style="font-family:var(--head);font-size:1.6rem;font-weight:800;color:var(--green)">24</div><div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);text-transform:uppercase">Tests run</div></div>
+        <div style="text-align:center"><div style="font-family:var(--head);font-size:1.6rem;font-weight:800;color:var(--green)">24</div><div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);text-transform:uppercase">Passed</div></div>
+        <div style="text-align:center"><div style="font-family:var(--head);font-size:1.6rem;font-weight:800;color:var(--green)">0</div><div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);text-transform:uppercase">Failures</div></div>
+      </div>
+    </div>
+
+    <!-- Speed comparison -->
+    <div class="speed-section">
+      <div class="speed-card">
+        <div class="speed-title">Traditional vs AI-Accelerated</div>
+        <div class="speed-row"><div class="speed-label">Requirements</div><div class="speed-trad">2–3 weeks</div><div class="speed-ai">1–2 days</div></div>
+        <div class="speed-row"><div class="speed-label">App development</div><div class="speed-trad">3–6 months</div><div class="speed-ai">2 days</div></div>
+        <div class="speed-row"><div class="speed-label">Doc ingestion</div><div class="speed-trad">Manual weeks</div><div class="speed-ai">Hours</div></div>
+        <div class="speed-row"><div class="speed-label">Test coverage</div><div class="speed-trad">Partial, slow</div><div class="speed-ai">Full, automated</div></div>
+        <div class="speed-row"><div class="speed-label">Code review</div><div class="speed-trad">1–3 days</div><div class="speed-ai">Minutes</div></div>
+        <div class="speed-row"><div class="speed-label">Total lifecycle</div><div class="speed-trad">6–12 months</div><div class="speed-ai" style="font-size:1rem;">1 week</div></div>
+      </div>
+      <div class="speed-card">
+        <div class="speed-title">Slingshot + ECG value</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+          <div style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:9px;padding:10px 13px;">
+            <div style="font-family:var(--head);font-weight:700;font-size:0.85rem;color:var(--purple);margin-bottom:3px;">Slingshot</div>
+            <div style="font-size:0.78rem;color:rgba(255,255,255,0.65);line-height:1.5">Converts requirements into a working application in hours. Generates code, UI, and API stubs — ready to ingest into ECG.</div>
+          </div>
+          <div style="background:rgba(244,168,41,0.07);border:1px solid rgba(244,168,41,0.2);border-radius:9px;padding:10px 13px;">
+            <div style="font-family:var(--head);font-weight:700;font-size:0.85rem;color:var(--gold);margin-bottom:3px;">ECG — Enterprise Context Gateway</div>
+            <div style="font-size:0.78rem;color:rgba(255,255,255,0.65);line-height:1.5">Ingests all docs, specs, policies and code. Powers AI agents with full context — enabling testing agents that know both the rules and the implementation.</div>
+          </div>
+          <div style="background:rgba(0,180,216,0.07);border:1px solid rgba(0,180,216,0.18);border-radius:9px;padding:10px 13px;">
+            <div style="font-family:var(--head);font-weight:700;font-size:0.85rem;color:var(--accent);margin-bottom:3px;">Together</div>
+            <div style="font-size:0.78rem;color:rgba(255,255,255,0.65);line-height:1.5">A complete AI-accelerated development lifecycle — from use case to tested, deployed application in 1 week instead of 6–12 months.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function showScreen(id, tab) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  if(tab) tab.classList.add('active');
+}
+function goToBreachAI() {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('screen-breach-ai').classList.add('active');
+  document.querySelectorAll('.nav-tab')[2].classList.add('active');
+}
+
+const rates={AUDUSD:'0.6542',EURUSD:'1.0821',USDCNY:'7.2341',USDBRL:'4.9823',GBPUSD:'1.2654'};
+function updateRate(){const p=document.getElementById('ccy-pair').value;document.getElementById('live-rate').textContent=rates[p];document.getElementById('trade-rate').value=rates[p];}
+
+function submitTrade(){
+  const btn=event.target;btn.textContent='Submitting...';btn.disabled=true;
+  setTimeout(()=>{
+    const now=new Date();
+    const id='TRD-'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'-'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
+    const sel=document.getElementById('ccy-pair');
+    const ccy=sel.options[sel.selectedIndex].text;
+    const dir=document.getElementById('direction').value.split(' ')[0];
+    const n=document.getElementById('notional').value;
+    const r=document.getElementById('trade-rate').value;
+    const tbody=document.getElementById('recent-trades');
+    const row=document.createElement('tr');
+    row.innerHTML=`<td class="mono" style="color:var(--accent)">${id}</td><td>${ccy}</td><td>${dir}</td><td class="mono">$${n}</td><td class="mono">${r}</td><td><span class="badge bo">CONFIRMED</span></td>`;
+    tbody.insertBefore(row,tbody.firstChild);
+    showToast('Trade Submitted',id+' · Sent to position engine');
+    btn.textContent='Validate & Submit Trade →';btn.disabled=false;
+  },1100);
+}
+function resetForm(){document.getElementById('notional').value='85,000,000';document.getElementById('direction').selectedIndex=0;document.getElementById('ccy-pair').selectedIndex=0;updateRate();}
+
+function showToast(t,m){const el=document.getElementById('toast');document.getElementById('toast-title').textContent=t;document.getElementById('toast-msg').textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3500);}
+
+const aiResp={
+  'aud breach':()=>`<span class="ah">AUD/USD breach confirmed — James Wilson</span><br><br>NOP of $125M exceeds $100M limit by 25%. Per <span class="ag">Hedging Policy Section 3.2</span>, a breach of 20–50% requires a vanilla FX options hedge.<br><br><span class="ag">Recommended:</span> Sell $25M AUD via 1-week vanilla put option at current spot (0.6542). This returns NOP to $100M — within limit.<br><br><span class="ar">If not actioned within 2 hours, escalate to CRO per Escalation Policy 7.1.</span>`,
+  'nop limit':()=>`Per <span class="ag">Position Limit Policy Section 4.2</span>, the NOP limit for AUD/USD is <span class="ah">$100M</span>.<br><br>Current exposure: $125M — <span class="ar">25% over limit</span>. Policy requires hedging action within the same trading day.`,
+  'escalate':()=>`Based on breach severity:<br>• AUD/USD 25% over → <span class="ag">Hedge first, escalate in 2h if unresolved</span><br>• USD/CNY 19% over → <span class="ag">Hedge recommended</span><br><br>Per <span class="ag">Escalation Policy 7.1</span>: CRO triggered if breach >50% OR unresolved after 2h. <span class="agr">You have time to hedge first.</span>`,
+  'hedge instrument':()=>`Per <span class="ag">Hedging Playbook Rule 3.2</span>:<br>• <span class="ah">0–20% breach:</span> Spot FX sale<br>• <span class="ah">20–50% (your case):</span> Vanilla FX put option<br>• <span class="ah">>50%:</span> Immediate CRO escalation<br><br><span class="agr">Recommended: Sell $25M AUD vanilla put, 1-week tenor, strike at 0.6542.</span>`,
+  'hedging policy':()=>`<span class="ag">Hedging Policy Summary (from ECG):</span><br><br>• Section 3.1: All NOP breaches require same-day action<br>• Section 3.2: Breach 20–50% → vanilla options hedge<br>• Section 3.3: Breach >50% → immediate CRO escalation<br>• Section 4.1: VaR breaches require position reduction within 4 hours<br><br><span class="ah">Document last updated: Q1 2026 · Ingested into ECG: 28 Apr 2026</span>`
+};
+function findResp(q){const l=q.toLowerCase();for(const k of Object.keys(aiResp)){if(l.includes(k))return aiResp[k]();}return `Based on current positions and ECG-ingested policy, I recommend reviewing Hedging Policy 3.2. Would you like details on the AUD breach recommendation or escalation thresholds?`;}
+
+function addMsg(role,html){
+  const c=document.getElementById('chat-msgs');
+  const d=document.createElement('div');d.className='msg '+role;
+  const t=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  d.innerHTML=`<div class="mbub">${html}</div><div class="mtime">${t}</div>`;
+  c.appendChild(d);c.scrollTop=c.scrollHeight;
+}
+function showTyping(){const c=document.getElementById('chat-msgs');const d=document.createElement('div');d.className='msg a';d.id='typing';d.innerHTML='<div class="mbub"><div class="typing"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>';c.appendChild(d);c.scrollTop=c.scrollHeight;}
+function removeTyping(){const t=document.getElementById('typing');if(t)t.remove();}
+function askQ(q){document.getElementById('cinput').value=q;sendChat();}
+function sendChat(){
+  const inp=document.getElementById('cinput');const q=inp.value.trim();if(!q)return;
+  addMsg('u',q);inp.value='';showTyping();document.getElementById('src-bar').style.display='none';
+  setTimeout(()=>{removeTyping();addMsg('a',findResp(q));document.getElementById('src-bar').style.display='block';},1300);
+}
+function handleKey(e){if(e.key==='Enter')sendChat();}
+function triggerAI(){askQ('What should we do about the AUD breach?');}
+function executeHedge(){showToast('Hedge Initiated','Sell $25M AUD vanilla put option · Trade desk notified');}
+function escalateCRO(){showToast('CRO Notified','Escalation sent · Ref: ESC-'+new Date().getFullYear()+'-001');}
+
+const agentResults=[
+  {msg:'PASS: Epics generated from use case ✓\nPASS: 12 user stories created ✓\nPASS: Story points estimated ✓\nPASS: Sprint plan drafted ✓\nSource: Domain spec (ECG)'},
+  {msg:'PASS: App structure scaffolded ✓\nPASS: 4 UI screens generated ✓\nPASS: API endpoints wired ✓\nPASS: Code ingested into ECG ✓\nSource: App spec (Slingshot)'},
+  {msg:'PASS: NOP breach alert fired ✓\nPASS: VaR threshold detected ✓\nPASS: AI recommendation correct ✓\nPASS: E2E flow verified ✓\nSource: App spec + Policy (ECG)'},
+  {msg:'PASS: No security vulnerabilities ✓\nPASS: Coding standards met ✓\nPASS: 0 critical issues ✓\nPASS: PR comments generated ✓\nSource: Code + Standards (ECG)'},
+  {msg:'PASS: Integration tests green ✓\nPASS: Build artefacts created ✓\nPASS: Deployed to staging ✓\nPASS: Smoke tests passed ✓\nSource: CI/CD pipeline'},
+  {msg:'PASS: Position monitor active ✓\nPASS: Breach detection < 2s ✓\nPASS: Hedge recommendation correct ✓\nPASS: Risk manager notified ✓\nSource: Policy + Playbook (ECG)'},
+];
+
+function runAgent(n){
+  const btn=document.getElementById(`a${n}-btn`);
+  const prog=document.getElementById(`a${n}-prog`);
+  const tests=document.getElementById(`a${n}-tests`);
+  const result=document.getElementById(`a${n}-result`);
+  const icons=tests.querySelectorAll('.tico');
+  btn.textContent='Running...';btn.classList.add('running');result.classList.remove('show');
+  prog.style.background='var(--accent)';
+  let step=0;
+  const iv=setInterval(()=>{
+    if(step<icons.length){
+      icons[step].className='tico tir';icons[step].textContent='...';
+      prog.style.width=((step+1)/icons.length*100)+'%';
+      setTimeout(()=>{icons[step].className='tico tipa';icons[step].textContent='✓';},380);
+      step++;
+    } else {
+      clearInterval(iv);prog.style.width='100%';prog.style.background='var(--green)';
+      btn.textContent='✓ Passed';btn.classList.remove('running');btn.classList.add('done');
+      result.className='res-box pass show';result.textContent=agentResults[n-1].msg;
+      checkAllDone();
+    }
+  },480);
+}
+function runAllAgents(){[1,2,3,4,5,6].forEach((n,i)=>setTimeout(()=>runAgent(n),i*700));}
+function checkAllDone(){
+  const all=[1,2,3,4,5,6].every(n=>document.getElementById(`a${n}-btn`).classList.contains('done'));
+  if(all)setTimeout(()=>{document.getElementById('summary-card').style.display='block';},300);
+}
+</script>
+</body>
+</html>
